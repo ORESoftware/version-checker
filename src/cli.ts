@@ -2,3 +2,4 @@
 'use strict';
 
 import * as path from 'path';
+import './tool'
