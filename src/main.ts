@@ -77,15 +77,6 @@ export default () => {
       }
     }
 
-    // console.log({
-    //   lastIndex,
-    //   firstIndex,
-    //   z,
-    //   d,
-    //   resolved,
-    //   folderContainingPackageJson
-    // });
-
   }
 
 
