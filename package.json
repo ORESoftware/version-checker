@@ -31,6 +31,8 @@
   },
   "homepage": "https://github.com/ORESoftware/typescript-library-skeleton#readme",
   "dependencies": {
+    "chalk": "^3.0.0",
+    "residence": "1.0.217",
     "semver": "^7.1.3"
   },
   "devDependencies": {
