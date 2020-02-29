@@ -14,6 +14,7 @@ import * as util from 'util';
 import * as path from 'path';
 import * as semver from 'semver';
 import log from './logging';
+import * as find from './find';
 
 const join = (...args: any[]): string => {
   return args.map(v => typeof v === 'string' ? v : util.inspect(v)).join(' ')
@@ -23,11 +24,11 @@ export default () => {
 
   const pkgJsonFilePath = path.resolve(process.cwd() + '/package.json');
 
-  try{
+  try {
     fs.statSync(pkgJsonFilePath)
   }
-  catch(err){
-    if(!/no such file or directory/.test(err.message)){
+  catch (err) {
+    if (!/no such file or directory/.test(err.message)) {
       console.error(err);
     }
     process.exit(1);
@@ -35,7 +36,7 @@ export default () => {
 
   const pkgJson = require(pkgJsonFilePath);
 
-  const createMapper = (v: any) => (z: string) => ({package: z, version: v[z]});
+  const createMapper = (v: {[key:string]: string}) => (z: string) => ({package: z, version: v[z]});
 
   const deps = Object.keys(pkgJson.dependencies || {}).map(createMapper(pkgJson.dependencies || {}))
     .concat(Object.keys(pkgJson.devDependencies || {}).map(createMapper(pkgJson.devDependencies || {})))
@@ -43,25 +44,33 @@ export default () => {
 
   for (const d of deps) {
 
+    let folderContainingPackageJson = null;
     try {
-      var resolved = require.resolve(d.package);
-    } catch (err) {
-      if(!d.package.startsWith('@types/')){
+      // var resolved = require.resolve(d.package);
+       folderContainingPackageJson = find.findPackageJSON(process.cwd(), `/node_modules/${d.package}/package.json`);
+      // console.log({folderContainingPackageJson, pkg: d.package});
+    }
+    catch (err) {
+
+      if(!folderContainingPackageJson){
+        throw {
+          message: `The following package could not be resolved '${d.package}'`,
+          package: d.package,
+          [marker]: true
+          // join(`The version for package '${pkgJson.name}' did not match expected version:`, chalk.gpkgJson.version, d.version);
+        }
+      }
+      if (!d.package.startsWith('@types/')) {
         log.warn(`Could not require.resolve package: '${d.package}'`);
       }
       continue;
     }
 
-    const folderContainingPackageJson = residence.findRootDir(
-      path.dirname(resolved),
-      'package.json'
-    );
-
-    if(!folderContainingPackageJson){
+    if (!folderContainingPackageJson) {
       throw new Error(join('Could not locate package.json in or about path:', folderContainingPackageJson));
     }
 
-    const pkgJson = require(folderContainingPackageJson + '/package.json');
+    const pkgJson = require(folderContainingPackageJson);
 
     if (pkgJson.name != d.package) {
       log.warn('name does not match:', pkgJson.name, 'versus:', d.package);
@@ -76,11 +85,15 @@ export default () => {
     try {
       var b = semver.satisfies(pkgJson.version, d.version);
       log.debug(pkgJson.name, 'satisfied?:', b);
-    } catch (e) {
+    }
+    catch (e) {
       throw new Error(join('semver.satisfies could not be called for package here:', pkgJson));
     }
 
     if (b !== true) {
+
+      // console.log({resolved, folderContainingPackageJson, pkgJson});
+
       throw {
         message: `The version for package '${pkgJson.name}' did not match expected version`,
         package: pkgJson.name,
@@ -92,7 +105,6 @@ export default () => {
     }
 
   }
-
 
 };
 

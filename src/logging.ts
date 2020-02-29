@@ -10,7 +10,7 @@ export const log = {
   warn: console.error.bind(console, chalk.bold.magenta.bold('version-checker warn:')),
   error: console.error.bind(console, chalk.redBright.bold('version-checker error:')),
   debug (...args: any[]) {
-    isDebug && console.log(chalk.yellowBright('version-checker debug:'), ...arguments);
+    isDebug && console.log(chalk.yellow.bold('version-checker debug:'), ...arguments);
   }
 };
 
