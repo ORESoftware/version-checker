@@ -7,11 +7,13 @@ export const r2gSmokeTest = function () {
   return true;
 };
 
+import * as fs from 'fs'
 import {marker} from "./symbol";
 import * as residence from 'residence';
 import * as util from 'util';
 import * as path from 'path';
 import * as semver from 'semver';
+import log from './logging';
 
 const join = (...args: any[]): string => {
   return args.map(v => typeof v === 'string' ? v : util.inspect(v)).join(' ')
@@ -19,7 +21,19 @@ const join = (...args: any[]): string => {
 
 export default () => {
 
-  const pkgJson = require(path.resolve(process.cwd() + '/package.json'));
+  const pkgJsonFilePath = path.resolve(process.cwd() + '/package.json');
+
+  try{
+    fs.statSync(pkgJsonFilePath)
+  }
+  catch(err){
+    if(!/no such file or directory/.test(err.message)){
+      console.error(err);
+    }
+    process.exit(1);
+  }
+
+  const pkgJson = require(pkgJsonFilePath);
 
   const createMapper = (v: any) => (z: string) => ({package: z, version: v[z]});
 
@@ -33,7 +47,7 @@ export default () => {
       var resolved = require.resolve(d.package);
     } catch (err) {
       if(!d.package.startsWith('@types/')){
-        console.warn(`Could not require.resolve package: '${d.package}'`);
+        log.warn(`Could not require.resolve package: '${d.package}'`);
       }
       continue;
     }
@@ -50,18 +64,18 @@ export default () => {
     const pkgJson = require(folderContainingPackageJson + '/package.json');
 
     if (pkgJson.name != d.package) {
-      console.warn('name does not match:', pkgJson.name, 'versus:', d.package);
+      log.warn('name does not match:', pkgJson.name, 'versus:', d.package);
       continue;
     }
 
     if (!pkgJson.version) {
-      console.log('package.json has no version field:', pkgJson);
+      log.warn('package.json has no version field:', pkgJson);
       continue;
     }
 
     try {
       var b = semver.satisfies(pkgJson.version, d.version);
-      console.log(pkgJson.name, 'satisfied?:', b);
+      log.debug(pkgJson.name, 'satisfied?:', b);
     } catch (e) {
       throw new Error(join('semver.satisfies could not be called for package here:', pkgJson));
     }
